@@ -11,56 +11,52 @@
 
 pragma solidity ^0.4.13;
 
-contract DSAuthority {
-    function canCall(
+contract DSIGuard {
+    function okay(
         address src, address dst, bytes4 sig
     ) public view returns (bool);
 }
 
 contract DSAuthEvents {
-    event LogSetAuthority (address indexed authority);
-    event LogSetOwner     (address indexed owner);
+    event LogWard (address indexed guard);
+    event LogRely (address indexed owner);
+    event LogDeny (address indexed owner);
 }
 
 contract DSAuth is DSAuthEvents {
-    DSAuthority  public  authority;
-    address      public  owner;
+    DSIGuard                   public  __guard__;
+    mapping (address => bool)  public  __owners__;
 
     function DSAuth() public {
-        owner = msg.sender;
-        LogSetOwner(msg.sender);
+        __owners__[msg.sender] = true;
+        LogRely(msg.sender);
     }
 
-    function setOwner(address owner_)
-        public
-        auth
-    {
-        owner = owner_;
-        LogSetOwner(owner);
+    function __rely__(address owner) public auth {
+        __owners__[owner] = true;
+        LogRely(owner);
+    }
+    function __deny__(address owner) public auth {
+        __owners__[owner] = false;
+        LogDeny(owner);
+    }
+    function __give__(address owner) public auth {
+        __rely__(owner);
+        __deny__(msg.sender);
     }
 
-    function setAuthority(DSAuthority authority_)
-        public
-        auth
-    {
-        authority = authority_;
-        LogSetAuthority(authority);
+    function __ward__(DSIGuard guard) public auth {
+        __guard__ = guard;
+        LogWard(guard);
     }
 
     modifier auth {
-        require(isAuthorized(msg.sender, msg.sig));
+        require(
+          msg.sender == address(this)
+            || __owners__[msg.sender]
+            || __guard__.okay(msg.sender, this, msg.sig)
+        );
+        
         _;
-    }
-
-    function isAuthorized(address src, bytes4 sig) internal view returns (bool) {
-        if (src == address(this)) {
-            return true;
-        } else if (src == owner) {
-            return true;
-        } else if (authority == DSAuthority(0)) {
-            return false;
-        } else {
-            return authority.canCall(src, this, sig);
-        }
     }
 }
