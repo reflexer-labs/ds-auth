@@ -11,7 +11,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.4.23;
+pragma solidity >=0.6.7;
 
 interface DSAuthority {
     function canCall(
@@ -19,7 +19,7 @@ interface DSAuthority {
     ) external view returns (bool);
 }
 
-contract DSAuthEvents {
+abstract contract DSAuthEvents {
     event LogSetAuthority (address indexed authority);
     event LogSetOwner     (address indexed owner);
 }
@@ -34,6 +34,7 @@ contract DSAuth is DSAuthEvents {
     }
 
     function setOwner(address owner_)
+        virtual
         public
         auth
     {
@@ -42,6 +43,7 @@ contract DSAuth is DSAuthEvents {
     }
 
     function setAuthority(DSAuthority authority_)
+        virtual
         public
         auth
     {
@@ -54,7 +56,7 @@ contract DSAuth is DSAuthEvents {
         _;
     }
 
-    function isAuthorized(address src, bytes4 sig) internal view returns (bool) {
+    function isAuthorized(address src, bytes4 sig) virtual internal view returns (bool) {
         if (src == address(this)) {
             return true;
         } else if (src == owner) {
